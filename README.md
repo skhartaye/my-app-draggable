@@ -1,3 +1,29 @@
+# Draggable Notes
+
+## Local setup
+
+1. Create `.env.local` in the app root:
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+2. Install and run:
+```
+npm install
+npm run dev
+```
+
+## Netlify deploy
+
+1. Connect the repo on Netlify: Add new site → Import from Git.
+2. Set environment variables in Site settings → Environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. Build settings:
+   - Build command: `npm run build`
+   - Publish directory: `.next`
+4. Ensure `netlify.toml` is present with `@netlify/plugin-nextjs`.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
