@@ -108,7 +108,7 @@ export default function PostItApp() {
         {notes.length === 0 && (
           <div className="bg-muted/80 backdrop-blur-sm rounded-lg border p-3 md:p-4 max-w-[calc(100vw-1rem)] md:max-w-xs">
             <p className="text-xs md:text-sm text-muted-foreground">
-              Click "Add Note" to create your first sticky note! You can drag them around and edit by clicking the
+              Click &quot;Add Note&quot; to create your first sticky note! You can drag them around and edit by clicking the
               pencil icon. Notes are shared with other users in real-time.
             </p>
           </div>

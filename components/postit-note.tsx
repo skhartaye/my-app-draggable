@@ -51,7 +51,7 @@ export function PostItNote({ id, x, y, content, color, onPositionUpdate, onConte
     }
   }, [isEditing])
 
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isEditing) return
 
     // Prevent default to avoid scrolling on touch devices
@@ -187,7 +187,7 @@ export function PostItNote({ id, x, y, content, color, onPositionUpdate, onConte
           variant="ghost"
           size="sm"
           className="h-7 w-7 md:h-6 md:w-6 p-0 hover:bg-destructive hover:text-destructive-foreground touch-manipulation"
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e: React.PointerEvent<HTMLButtonElement>) => e.stopPropagation()}
           onClick={() => onDelete(id)}
         >
           <X className="h-3 w-3 md:h-3 md:w-3" />
@@ -198,10 +198,10 @@ export function PostItNote({ id, x, y, content, color, onPositionUpdate, onConte
         <textarea
           ref={textareaRef}
           value={editContent}
-          onChange={(e) => handleContentChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e: React.PointerEvent<HTMLTextAreaElement>) => e.stopPropagation()}
           className="w-full h-24 md:h-32 bg-transparent border-none outline-none resize-none text-xs md:text-sm font-medium placeholder:text-muted-foreground"
           placeholder="Type your note..."
         />
