@@ -1,103 +1,145 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { PostItNote } from "@/components/postit-note"
+import { ColorPicker } from "@/components/color-picker"
+import { Plus, Trash2, Wifi, WifiOff } from "lucide-react"
+import { useRealtimeNotes } from "@/hooks/use-realtime-notes"
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function PostItApp() {
+  const [selectedColor, setSelectedColor] = useState("yellow")
+  const { notes, loading, connected, createNote, updateNote, deleteNote, clearAllNotes } = useRealtimeNotes()
+
+  const handleCreateNote = async () => {
+    const isMobile = window.innerWidth < 768
+    const maxX = window.innerWidth - (isMobile ? 160 : 200)
+    const maxY = window.innerHeight - (isMobile ? 200 : 300)
+    const minY = isMobile ? 120 : 100
+
+    const newNoteData = {
+      x: Math.random() * Math.max(0, maxX),
+      y: Math.random() * Math.max(0, maxY) + minY,
+      content: "",
+      color: selectedColor,
+    }
+
+    try {
+      await createNote(newNoteData)
+    } catch (error) {
+      console.error("Failed to create note:", error)
+    }
+  }
+
+  const handleUpdateNotePosition = (id: string, x: number, y: number) => {
+    updateNote(id, { x, y })
+  }
+
+  const handleUpdateNoteContent = (id: string, content: string) => {
+    updateNote(id, { content })
+  }
+
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await deleteNote(id)
+    } catch (error) {
+      console.error("Failed to delete note:", error)
+    }
+  }
+
+  const handleClearAllNotes = async () => {
+    try {
+      await clearAllNotes()
+    } catch (error) {
+      console.error("Failed to clear notes:", error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background canvas-grid flex items-center justify-center">
+        <div className="bg-card/95 backdrop-blur-sm rounded-lg border p-6 shadow-lg">
+          <p className="text-muted-foreground">Loading notes...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background canvas-grid relative overflow-hidden">
+      <div className="fixed top-2 left-2 md:top-4 md:left-4 z-50 flex flex-col gap-2 md:gap-4">
+        <div className="bg-card/95 backdrop-blur-sm rounded-lg border p-3 md:p-4 shadow-lg max-w-[calc(100vw-1rem)] md:max-w-none">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h1 className="text-lg md:text-xl font-bold text-foreground">Post-It Notes</h1>
+            <div className="flex items-center gap-1">
+              {connected ? (
+                <>
+                  <Wifi className="h-4 w-4 text-green-500" />
+                  <span className="text-xs text-green-500">Live</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4 text-red-500" />
+                  <span className="text-xs text-red-500">Offline</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <ColorPicker selectedColor={selectedColor} onColorSelect={setSelectedColor} />
+
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={handleCreateNote} className="flex items-center gap-2 text-sm">
+                <Plus className="h-4 w-4" />
+                Add Note
+              </Button>
+
+              {notes.length > 0 && (
+                <Button variant="destructive" onClick={handleClearAllNotes} className="flex items-center gap-2 text-sm">
+                  <Trash2 className="h-4 w-4" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {notes.length === 0 && (
+          <div className="bg-muted/80 backdrop-blur-sm rounded-lg border p-3 md:p-4 max-w-[calc(100vw-1rem)] md:max-w-xs">
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Click "Add Note" to create your first sticky note! You can drag them around and edit by clicking the
+              pencil icon. Notes are shared with other users in real-time.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Notes Canvas */}
+      <div className="absolute inset-0">
+        {notes.map((note) => (
+          <PostItNote
+            key={note.id}
+            id={note.id}
+            x={note.x}
+            y={note.y}
+            content={note.content}
+            color={note.color}
+            onPositionUpdate={handleUpdateNotePosition}
+            onContentUpdate={handleUpdateNoteContent}
+            onDelete={handleDeleteNote}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        ))}
+      </div>
+
+      {notes.length > 0 && (
+        <div className="fixed bottom-2 right-2 md:bottom-4 md:right-4 bg-card/95 backdrop-blur-sm rounded-lg border p-2 md:p-3 max-w-[calc(100vw-1rem)] md:max-w-xs">
+          <p className="text-xs text-muted-foreground">
+            <strong>Tips:</strong> Drag notes to move them around. Click the pencil to edit. Changes are synced with
+            other users in real-time.
+          </p>
+        </div>
+      )}
     </div>
-  );
+  )
 }
