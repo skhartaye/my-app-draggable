@@ -38,6 +38,7 @@ export function PostItNote({ id, x, y, content, color, onPositionUpdate, onConte
   const startPositionRef = useRef({ x: 0, y: 0 })
   const pendingDeltaRef = useRef({ dx: 0, dy: 0 })
   const rafIdRef = useRef<number | null>(null)
+  const pointerIdRef = useRef<number | null>(null)
 
   // Update local position when props change (from real-time updates)
   useEffect(() => {
@@ -67,6 +68,7 @@ export function PostItNote({ id, x, y, content, color, onPositionUpdate, onConte
       startPositionRef.current = { x: currentPosition.x, y: currentPosition.y }
     }
     setIsDragging(true)
+    pointerIdRef.current = e.pointerId
 
     const handlePointerMove = (e: PointerEvent) => {
       // compute raw target position from pointer and offset relative to viewport
@@ -121,21 +123,30 @@ export function PostItNote({ id, x, y, content, color, onPositionUpdate, onConte
         rafIdRef.current = null
       }
       if (noteRef.current) {
-        noteRef.current.removeEventListener("pointermove", handlePointerMove as any)
-        noteRef.current.removeEventListener("pointerup", handlePointerUp as any)
-        try {
-          ;(noteRef.current as any).releasePointerCapture?.((e as any).pointerId)
-        } catch {}
+        noteRef.current.removeEventListener("pointermove", handlePointerMove)
+        noteRef.current.removeEventListener("pointerup", handlePointerUp)
+        const pid = pointerIdRef.current
+        if (pid != null && noteRef.current.releasePointerCapture) {
+          try {
+            noteRef.current.releasePointerCapture(pid)
+          } catch {
+            // ignore
+          }
+        }
       }
     }
 
     if (noteRef.current) {
       // Enable per-element pointer capture so multiple notes can drag concurrently
-      try {
-        ;(noteRef.current as any).setPointerCapture?.((e as any).pointerId)
-      } catch {}
-      noteRef.current.addEventListener("pointermove", handlePointerMove as any)
-      noteRef.current.addEventListener("pointerup", handlePointerUp as any)
+      if (noteRef.current.setPointerCapture) {
+        try {
+          noteRef.current.setPointerCapture(e.pointerId)
+        } catch {
+          // ignore
+        }
+      }
+      noteRef.current.addEventListener("pointermove", handlePointerMove)
+      noteRef.current.addEventListener("pointerup", handlePointerUp)
     }
   }
 
