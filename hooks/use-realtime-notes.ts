@@ -27,6 +27,7 @@ export function useRealtimeNotes() {
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(false)
+  const [userCount, setUserCount] = useState(1)
   const supabase = createClient()
 
   const [debounceTimers, setDebounceTimers] = useState<Record<string, NodeJS.Timeout>>({})
@@ -72,7 +73,7 @@ export function useRealtimeNotes() {
   }, [])
 
   useEffect(() => {
-    const channel = supabase
+    const notesChannel = supabase
       .channel("notes_changes")
       .on(
         "postgres_changes",
@@ -98,8 +99,36 @@ export function useRealtimeNotes() {
       )
       .subscribe()
 
+    // User presence channel
+    const presenceChannel = supabase
+      .channel("user_presence")
+      .on("presence", { event: "sync" }, () => {
+        const state = presenceChannel.presenceState()
+        const users = Object.keys(state)
+        setUserCount(users.length)
+      })
+      .on("presence", { event: "join" }, () => {
+        const state = presenceChannel.presenceState()
+        const users = Object.keys(state)
+        setUserCount(users.length)
+      })
+      .on("presence", { event: "leave" }, () => {
+        const state = presenceChannel.presenceState()
+        const users = Object.keys(state)
+        setUserCount(users.length)
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track({
+            user_id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            online_at: new Date().toISOString(),
+          })
+        }
+      })
+
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(notesChannel)
+      supabase.removeChannel(presenceChannel)
     }
   }, [])
 
@@ -189,5 +218,5 @@ export function useRealtimeNotes() {
     setBulkOperationTimer(timer)
   }, [debounceTimers, bulkOperationTimer])
 
-  return { notes, loading, connected, createNote, updateNote, deleteNote, clearAllNotes }
+  return { notes, loading, connected, userCount, createNote, updateNote, deleteNote, clearAllNotes }
 }

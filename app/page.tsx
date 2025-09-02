@@ -9,7 +9,7 @@ import { useRealtimeNotes } from "@/hooks/use-realtime-notes"
 
 export default function PostItApp() {
   const [selectedColor, setSelectedColor] = useState("yellow")
-  const { notes, loading, connected, createNote, updateNote, deleteNote, clearAllNotes } = useRealtimeNotes()
+  const { notes, loading, connected, userCount, createNote, updateNote, deleteNote, clearAllNotes } = useRealtimeNotes()
 
   const handleCreateNote = async () => {
     const isMobile = window.innerWidth < 768
@@ -71,7 +71,7 @@ export default function PostItApp() {
         <div className="bg-card/95 backdrop-blur-sm rounded-lg border p-3 md:p-4 shadow-lg max-w-[calc(100vw-1rem)] md:max-w-none">
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <h1 className="text-lg md:text-xl font-bold text-foreground">Post-It Notes</h1>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               {connected ? (
                 <>
                   <Wifi className="h-4 w-4 text-green-500" />
@@ -83,6 +83,10 @@ export default function PostItApp() {
                   <span className="text-xs text-red-500">Offline</span>
                 </>
               )}
+              <div className="h-4 w-px bg-border"></div>
+              <span className="text-xs text-muted-foreground">
+                {userCount} {userCount === 1 ? 'user' : 'users'} online
+              </span>
             </div>
           </div>
 
