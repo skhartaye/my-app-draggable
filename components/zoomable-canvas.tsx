@@ -14,6 +14,13 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 })
+  
+  // Touch gesture state
+  const [isGesturing, setIsGesturing] = useState(false)
+  const [lastTouchDistance, setLastTouchDistance] = useState(0)
+  const [isTouchPanning, setIsTouchPanning] = useState(false)
+  const [lastTouchPanPoint, setLastTouchPanPoint] = useState({ x: 0, y: 0 })
+  const [touchStartTime, setTouchStartTime] = useState(0)
 
   // Handle wheel zoom
   const handleWheel = useCallback((e: WheelEvent) => {
@@ -46,8 +53,147 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
     })
   }, [transform, onTransformChange])
 
+  // Helper function to calculate distance between two touches
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return 0
+    const touch1 = touches[0]
+    const touch2 = touches[1]
+    return Math.sqrt(
+      Math.pow(touch2.clientX - touch1.clientX, 2) + 
+      Math.pow(touch2.clientY - touch1.clientY, 2)
+    )
+  }
+
+
+
+  // Handle touch start for gestures
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Two finger touch - could be pinch or pan
+      e.preventDefault()
+      setIsGesturing(true)
+      setTouchStartTime(Date.now())
+      
+      const distance = getTouchDistance(e.touches)
+      setLastTouchDistance(distance)
+      
+      // Set initial pan point (center between two fingers)
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const centerX = (touch1.clientX + touch2.clientX) / 2
+      const centerY = (touch1.clientY + touch2.clientY) / 2
+      setLastTouchPanPoint({ x: centerX, y: centerY })
+    } else if (e.touches.length === 1) {
+      // Single finger - check if it's on empty canvas for potential pan
+      const target = e.target as HTMLElement
+      const isNote = target.closest('.postit-note')
+      const isButton = target.closest('button')
+      const isTextarea = target.tagName === 'TEXTAREA'
+      const isInput = target.tagName === 'INPUT'
+      
+      // Only start single-finger pan on empty canvas
+      if (!isNote && !isButton && !isTextarea && !isInput) {
+        setIsTouchPanning(true)
+        setLastTouchPanPoint({ x: e.touches[0].clientX, y: e.touches[0].clientY })
+      }
+    }
+  }, [])
+
+  // Handle touch move for gestures
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && isGesturing) {
+      e.preventDefault()
+      
+      const distance = getTouchDistance(e.touches)
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const centerX = (touch1.clientX + touch2.clientX) / 2
+      const centerY = (touch1.clientY + touch2.clientY) / 2
+      
+      // Calculate how much the distance changed (for zoom)
+      const distanceChange = Math.abs(distance - lastTouchDistance)
+      
+      // Calculate how much the center moved (for pan)
+      const panDeltaX = centerX - lastTouchPanPoint.x
+      const panDeltaY = centerY - lastTouchPanPoint.y
+      const panDistance = Math.sqrt(panDeltaX * panDeltaX + panDeltaY * panDeltaY)
+      
+      // Determine if this is primarily a zoom or pan gesture
+      const timeSinceStart = Date.now() - touchStartTime
+      const isZoomGesture = distanceChange > panDistance * 0.3 || timeSinceStart < 100
+      
+      if (isZoomGesture && lastTouchDistance > 0) {
+        // Handle pinch zoom
+        const scaleChange = distance / lastTouchDistance
+        const newScale = Math.max(0.3, Math.min(3, transform.scale * scaleChange))
+        
+        // Calculate center point relative to canvas
+        const rect = canvasRef.current?.getBoundingClientRect()
+        if (!rect) return
+        
+        const canvasCenterX = centerX - rect.left
+        const canvasCenterY = centerY - rect.top
+        
+        // Calculate world coordinates of the pinch center
+        const worldX = (canvasCenterX - transform.translateX) / transform.scale
+        const worldY = (canvasCenterY - transform.translateY) / transform.scale
+        
+        // Calculate new translation to keep the pinch center in place
+        const newTranslateX = canvasCenterX - worldX * newScale
+        const newTranslateY = canvasCenterY - worldY * newScale
+        
+        onTransformChange({
+          scale: newScale,
+          translateX: newTranslateX,
+          translateY: newTranslateY,
+        })
+        
+        setLastTouchDistance(distance)
+      } else if (panDistance > 5) {
+        // Handle two-finger pan
+        onTransformChange({
+          scale: transform.scale,
+          translateX: transform.translateX + panDeltaX,
+          translateY: transform.translateY + panDeltaY,
+        })
+        
+        setLastTouchPanPoint({ x: centerX, y: centerY })
+      }
+    } else if (e.touches.length === 1 && isTouchPanning) {
+      // Handle single-finger pan on empty canvas
+      e.preventDefault()
+      
+      const touch = e.touches[0]
+      const deltaX = touch.clientX - lastTouchPanPoint.x
+      const deltaY = touch.clientY - lastTouchPanPoint.y
+      
+      onTransformChange({
+        scale: transform.scale,
+        translateX: transform.translateX + deltaX,
+        translateY: transform.translateY + deltaY,
+      })
+      
+      setLastTouchPanPoint({ x: touch.clientX, y: touch.clientY })
+    }
+  }, [isGesturing, isTouchPanning, lastTouchDistance, lastTouchPanPoint, touchStartTime, transform, onTransformChange])
+
+  // Handle touch end
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      setIsGesturing(false)
+      setLastTouchDistance(0)
+    }
+    
+    if (e.touches.length === 0) {
+      setIsTouchPanning(false)
+    }
+  }, [])
+
   // Handle pan start
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Don't handle pointer events if we're in a touch gesture
+    if (isGesturing) return
+    
     // Check if we're on mobile
     const isMobile = window.innerWidth < 768
     
@@ -74,11 +220,11 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
       setLastPanPoint({ x: e.clientX, y: e.clientY })
       canvasRef.current?.setPointerCapture(e.pointerId)
     }
-  }, [])
+  }, [isGesturing])
 
   // Handle pan move
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isPanning) return
+    if (!isPanning || isGesturing) return
     
     e.preventDefault()
 
@@ -92,7 +238,7 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
     })
 
     setLastPanPoint({ x: e.clientX, y: e.clientY })
-  }, [isPanning, lastPanPoint, transform, onTransformChange])
+  }, [isPanning, isGesturing, lastPanPoint, transform, onTransformChange])
 
   // Handle pan end
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -178,8 +324,12 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       style={{
         cursor: isPanning ? 'grabbing' : 'default',
+        touchAction: 'none', // Prevent default touch behaviors
       }}
     >
       <div

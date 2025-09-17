@@ -230,8 +230,9 @@ export default function PostItApp() {
             </p>
             <div className="mt-2 text-xs text-muted-foreground">
               <div className="md:hidden">
-                <div>📱 <strong>Touch:</strong> Drag notes to move them</div>
-                <div>🔍 <strong>Pinch:</strong> Zoom in/out</div>
+                <div>✋ <strong>Drag notes:</strong> Move them around</div>
+                <div>🤏 <strong>Pinch:</strong> Zoom in/out</div>
+                <div>👆 <strong>Slide:</strong> Pan around canvas</div>
                 <div>📋 <strong>Tap overview:</strong> See all notes</div>
               </div>
               <div className="hidden md:block">
@@ -267,6 +268,13 @@ export default function PostItApp() {
           />
         ))}
       </ZoomableCanvas>
+
+      {/* Mobile zoom indicator */}
+      {viewport.scale !== 1 && (
+        <div className="md:hidden fixed top-1/2 left-4 transform -translate-y-1/2 bg-black/80 text-white px-3 py-2 rounded-full text-sm font-medium z-40">
+          {Math.round(viewport.scale * 100)}%
+        </div>
+      )}
 
       {/* Mobile Floating Action Button for Overview */}
       {notes.length > 0 && (
@@ -327,7 +335,7 @@ export default function PostItApp() {
       {notes.length > 0 && (
         <div className="md:hidden fixed bottom-20 left-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg border p-3 text-center z-30">
           <p className="text-xs text-muted-foreground">
-            💡 <strong>Tip:</strong> Pinch to zoom • Drag notes to move • Tap overview button to see all notes
+            💡 <strong>Gestures:</strong> 🤏 Pinch to zoom • 👆 Slide to pan • ✋ Drag notes • 📋 Tap overview
           </p>
         </div>
       )}
