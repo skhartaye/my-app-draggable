@@ -12,13 +12,30 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl) {
+    console.error("NEXT_PUBLIC_SUPABASE_URL is required but not found in environment variables")
     throw new Error("NEXT_PUBLIC_SUPABASE_URL is required but not found in environment variables")
   }
 
   if (!supabaseAnonKey) {
+    console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY is required but not found in environment variables")
     throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is required but not found in environment variables")
   }
 
-  supabaseClient = createSupabaseClient(supabaseUrl, supabaseAnonKey)
-  return supabaseClient
+  try {
+    supabaseClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    })
+    return supabaseClient
+  } catch (error) {
+    console.error("Failed to create Supabase client:", error)
+    throw error
+  }
 }

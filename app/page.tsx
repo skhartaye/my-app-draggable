@@ -1,35 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { PostItNote } from "@/components/postit-note"
 import { ColorPicker } from "@/components/color-picker"
 import { Plus, Trash2, Wifi, WifiOff } from "lucide-react"
-import { useRealtimeNotes } from "@/hooks/use-realtime-notes"
+import { useRealtimeNotes, type Note } from "@/hooks/use-realtime-notes"
+import { NotesLoadingSkeleton } from "@/components/loading-skeleton"
+import { ToastContainer, useToast } from "@/components/toast"
+import { NotesOverview } from "@/components/notes-overview"
+import { ViewportNavigator } from "@/components/viewport-navigator"
+import { Minimap } from "@/components/minimap"
+import { ZoomableCanvas } from "@/components/zoomable-canvas"
 
 export default function PostItApp() {
   const [selectedColor, setSelectedColor] = useState("yellow")
+  const [showOverview, setShowOverview] = useState(false)
+  const [viewport, setViewport] = useState({ scale: 1, translateX: 0, translateY: 0 })
   const { notes, loading, connected, userCount, createNote, updateNote, deleteNote, clearAllNotes } = useRealtimeNotes()
+  const toast = useToast()
 
-  const handleCreateNote = async () => {
+  const handleCreateNote = useCallback(async () => {
     const isMobile = window.innerWidth < 768
-    const maxX = window.innerWidth - (isMobile ? 160 : 200)
-    const maxY = window.innerHeight - (isMobile ? 200 : 300)
-    const minY = isMobile ? 120 : 100
+    const noteWidth = isMobile ? 160 : 192
+    const noteHeight = isMobile ? 160 : 192
+    
+    // Calculate position in world coordinates (accounting for current viewport)
+    const viewportCenterX = (window.innerWidth / 2 - viewport.translateX) / viewport.scale
+    const viewportCenterY = (window.innerHeight / 2 - viewport.translateY) / viewport.scale
+    
+    // Add some randomness around the viewport center
+    const randomOffsetX = (Math.random() - 0.5) * 200
+    const randomOffsetY = (Math.random() - 0.5) * 200
 
     const newNoteData = {
-      x: Math.random() * Math.max(0, maxX),
-      y: Math.random() * Math.max(0, maxY) + minY,
+      x: Math.max(0, viewportCenterX + randomOffsetX - noteWidth / 2),
+      y: Math.max(0, viewportCenterY + randomOffsetY - noteHeight / 2),
       content: "",
       color: selectedColor,
     }
 
     try {
       await createNote(newNoteData)
+      toast.success("Note created!")
     } catch (error) {
       console.error("Failed to create note:", error)
+      toast.error("Failed to create note. Please try again.")
     }
-  }
+  }, [selectedColor, createNote, toast, viewport])
 
   const handleUpdateNotePosition = (id: string, x: number, y: number) => {
     updateNote(id, { x, y })
@@ -42,31 +60,94 @@ export default function PostItApp() {
   const handleDeleteNote = async (id: string) => {
     try {
       await deleteNote(id)
+      toast.success("Note deleted!")
     } catch (error) {
       console.error("Failed to delete note:", error)
+      toast.error("Failed to delete note. Please try again.")
     }
   }
 
-  const handleClearAllNotes = async () => {
+  const handleClearAllNotes = useCallback(async () => {
+    if (!confirm("Are you sure you want to delete all notes? This action cannot be undone.")) {
+      return
+    }
+    
     try {
       await clearAllNotes()
+      toast.success("All notes cleared!")
     } catch (error) {
       console.error("Failed to clear notes:", error)
+      toast.error("Failed to clear notes. Please try again.")
     }
-  }
+  }, [clearAllNotes, toast])
+
+  const handleNoteClick = useCallback((note: Note) => {
+    // Navigate to the clicked note
+    const noteWidth = window.innerWidth < 768 ? 160 : 192
+    const noteHeight = window.innerWidth < 768 ? 160 : 192
+    
+    const targetX = note.x + noteWidth / 2
+    const targetY = note.y + noteHeight / 2
+    
+    const newTranslateX = window.innerWidth / 2 - targetX * viewport.scale
+    const newTranslateY = window.innerHeight / 2 - targetY * viewport.scale
+    
+    setViewport({
+      scale: Math.max(viewport.scale, 1), // Ensure at least 100% zoom
+      translateX: newTranslateX,
+      translateY: newTranslateY,
+    })
+    
+    setShowOverview(false)
+    toast.info(`Navigated to note: ${note.content || 'Empty note'}`)
+  }, [viewport.scale, toast])
+
+  const handleViewportChange = useCallback((newViewport: typeof viewport) => {
+    setViewport(newViewport)
+  }, [])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + N to create new note
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        handleCreateNote()
+      }
+      // Ctrl/Cmd + Shift + Delete to clear all notes
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Delete') {
+        e.preventDefault()
+        if (notes.length > 0) {
+          handleClearAllNotes()
+        }
+      }
+      // O to toggle overview
+      if (e.key === 'o' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        setShowOverview(!showOverview)
+      }
+      // F to fit all notes
+      if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        if (notes.length > 0) {
+          // Trigger fit all from viewport navigator
+          const event = new CustomEvent('fitAllNotes')
+          window.dispatchEvent(event)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [notes.length, handleCreateNote, handleClearAllNotes, showOverview])
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background canvas-grid flex items-center justify-center">
-        <div className="bg-card/95 backdrop-blur-sm rounded-lg border p-6 shadow-lg">
-          <p className="text-muted-foreground">Loading notes...</p>
-        </div>
-      </div>
-    )
+    return <NotesLoadingSkeleton />
   }
 
   return (
     <div className="min-h-screen bg-background canvas-grid relative overflow-hidden">
+      {/* Main Controls */}
       <div className="fixed top-2 left-2 md:top-4 md:left-4 z-50 flex flex-col gap-2 md:gap-4">
         <div className="bg-card/95 backdrop-blur-sm rounded-lg border p-3 md:p-4 shadow-lg max-w-[calc(100vw-1rem)] md:max-w-none">
           <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -115,12 +196,23 @@ export default function PostItApp() {
               Click &quot;Add Note&quot; to create your first sticky note! You can drag them around and edit by clicking the
               pencil icon. Notes are shared with other users in real-time.
             </p>
+            <div className="mt-2 text-xs text-muted-foreground">
+              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Drag</kbd> - Move notes</div>
+              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">O</kbd> - Toggle overview</div>
+              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">F</kbd> - Fit all notes</div>
+              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Scroll</kbd> - Zoom in/out</div>
+              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Drag</kbd> - Pan canvas</div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Notes Canvas */}
-      <div className="absolute inset-0">
+      {/* Zoomable Canvas */}
+      <ZoomableCanvas
+        transform={viewport}
+        onTransformChange={handleViewportChange}
+        className="canvas-grid"
+      >
         {notes.map((note) => (
           <PostItNote
             key={note.id}
@@ -129,21 +221,51 @@ export default function PostItApp() {
             y={note.y}
             content={note.content}
             color={note.color}
+            viewport={viewport}
             onPositionUpdate={handleUpdateNotePosition}
             onContentUpdate={handleUpdateNoteContent}
             onDelete={handleDeleteNote}
           />
         ))}
-      </div>
+      </ZoomableCanvas>
 
+      {/* Navigation Components */}
+      <NotesOverview
+        notes={notes}
+        onNoteClick={handleNoteClick}
+        onToggleOverview={() => setShowOverview(!showOverview)}
+        isVisible={showOverview}
+      />
+
+      <ViewportNavigator
+        notes={notes}
+        onViewportChange={handleViewportChange}
+      />
+
+      <Minimap
+        notes={notes}
+        viewport={viewport}
+        onViewportChange={handleViewportChange}
+      />
+
+      {/* Help Tips */}
       {notes.length > 0 && (
-        <div className="fixed bottom-2 right-2 md:bottom-4 md:right-4 bg-card/95 backdrop-blur-sm rounded-lg border p-2 md:p-3 max-w-[calc(100vw-1rem)] md:max-w-xs">
+        <div className="fixed top-1/2 right-2 transform -translate-y-1/2 bg-card/95 backdrop-blur-sm rounded-lg border p-2 md:p-3 max-w-xs z-30">
           <p className="text-xs text-muted-foreground">
-            <strong>Tips:</strong> Drag notes to move them around. Click the pencil to edit. Changes are synced with
-            other users in real-time.
+            <strong>Navigation:</strong>
           </p>
+          <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+            <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Drag Note</kbd> Move</div>
+            <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">O</kbd> Overview</div>
+            <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">F</kbd> Fit all</div>
+            <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Scroll</kbd> Zoom</div>
+            <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Drag</kbd> Pan</div>
+            <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">±/0</kbd> Zoom/Reset</div>
+          </div>
         </div>
       )}
+
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
     </div>
   )
 }

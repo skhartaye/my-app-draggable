@@ -128,22 +128,53 @@
 /* Added custom styles for post-it notes */
 .postit-note {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
-.postit-note:hover {
-  transform: scale(1.02);
+.postit-note:hover:not(.dragging) {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .postit-note.dragging {
-  transform: rotate(2deg) scale(1.05);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transform: rotate(2deg) scale(1.05) translateZ(0) !important;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
   z-index: 1000;
+  will-change: transform;
+  transition: none !important;
+}
+
+.postit-note:not(.dragging) {
+  will-change: auto;
+  transition: all 0.2s ease;
 }
 
 .canvas-grid {
   background-image: linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+/* Smooth scrolling for better zoom experience */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent text selection during pan operations */
+.canvas-panning {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Better mobile touch handling */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Keyboard shortcut styling */
+kbd {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
 }

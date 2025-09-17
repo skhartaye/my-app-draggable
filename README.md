@@ -1,17 +1,45 @@
 # Draggable Notes
 
-## Local setup
+A real-time collaborative sticky notes application built with Next.js, Supabase, and Tailwind CSS. Create, edit, and share colorful sticky notes that sync instantly across all users.
 
-1. Create `.env.local` in the app root:
-```
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
-2. Install and run:
-```
-npm install
-npm run dev
-```
+## Features
+
+- 🎨 **Colorful Notes**: Choose from 6 vibrant colors for your sticky notes
+- 🖱️ **Drag & Drop**: Smooth dragging with touch support for mobile devices
+- ✏️ **Real-time Editing**: Edit notes inline with instant synchronization
+- 👥 **Live Collaboration**: See other users online and their changes in real-time
+- 📱 **Mobile Responsive**: Optimized for both desktop and mobile devices
+- 🔄 **Auto-save**: Changes are automatically saved as you type
+- 🗑️ **Easy Management**: Delete individual notes or clear all at once
+
+## Local Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd draggable-notes
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   - Copy `.env.example` to `.env.local`
+   - Add your Supabase project URL and anon key:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## Netlify deploy
 
