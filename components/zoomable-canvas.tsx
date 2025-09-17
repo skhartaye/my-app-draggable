@@ -48,6 +48,9 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
 
   // Handle pan start
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Check if we're on mobile
+    const isMobile = window.innerWidth < 768
+    
     // Check if the target is a note or its child elements
     const target = e.target as HTMLElement
     const isNote = target.closest('.postit-note')
@@ -55,14 +58,15 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
     const isTextarea = target.tagName === 'TEXTAREA'
     const isInput = target.tagName === 'INPUT'
     
-    // Only pan if:
-    // 1. Middle mouse button, OR
-    // 2. Ctrl/Cmd key held, OR  
-    // 3. Clicking on empty canvas (not on interactive elements)
-    const shouldPan = e.button === 1 || 
-                     e.ctrlKey || 
-                     e.metaKey || 
-                     (!isNote && !isButton && !isTextarea && !isInput)
+    // On mobile, be much more restrictive about panning
+    // Only pan if explicitly holding Ctrl/Cmd or middle mouse
+    // Don't pan on empty canvas clicks on mobile (interferes with touch)
+    const shouldPan = isMobile 
+      ? (e.button === 1 || e.ctrlKey || e.metaKey)
+      : (e.button === 1 || 
+         e.ctrlKey || 
+         e.metaKey || 
+         (!isNote && !isButton && !isTextarea && !isInput))
     
     if (shouldPan) {
       e.preventDefault()
@@ -101,6 +105,24 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
   // Keyboard shortcuts for zoom and pan
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is currently typing in an input field
+      const activeElement = document.activeElement as HTMLElement
+      const isTyping = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.contentEditable === 'true' ||
+        activeElement.isContentEditable
+      )
+
+      // Don't process any keyboard shortcuts while user is typing
+      if (isTyping) {
+        return
+      }
+
+      // Skip on mobile devices
+      const isMobile = window.innerWidth < 768
+      if (isMobile) return
+
       // Zoom with + and -
       if (e.key === '=' || e.key === '+') {
         e.preventDefault()

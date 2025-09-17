@@ -35,18 +35,17 @@ export function NotesOverview({ notes, onNoteClick, onToggleOverview, isVisible 
         onClick={onToggleOverview}
         variant="outline"
         size="sm"
-        className="fixed top-2 right-2 md:top-4 md:right-4 z-50 bg-card/95 backdrop-blur-sm"
+        className="hidden md:flex fixed top-2 right-2 md:top-4 md:right-4 z-50 bg-card/95 backdrop-blur-sm items-center"
         title="Show notes overview"
       >
         <Grid3X3 className="h-4 w-4" />
-        <span className="hidden md:inline ml-2">Overview ({notes.length})</span>
-        <span className="md:hidden ml-1">{notes.length}</span>
+        <span className="ml-2">Overview ({notes.length})</span>
       </Button>
     )
   }
 
   return (
-    <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 w-80 max-w-[calc(100vw-1rem)] bg-card/95 backdrop-blur-sm rounded-lg border shadow-lg">
+    <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50 w-full max-w-[calc(100vw-1rem)] md:w-80 bg-card/95 backdrop-blur-sm rounded-lg border shadow-lg">
       <div className="p-3 border-b">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-sm flex items-center gap-2">

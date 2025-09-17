@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { PostItNote } from "@/components/postit-note"
 import { ColorPicker } from "@/components/color-picker"
-import { Plus, Trash2, Wifi, WifiOff } from "lucide-react"
+import { Plus, Trash2, Wifi, WifiOff, Grid3X3 } from "lucide-react"
 import { useRealtimeNotes, type Note } from "@/hooks/use-realtime-notes"
 import { NotesLoadingSkeleton } from "@/components/loading-skeleton"
 import { ToastContainer, useToast } from "@/components/toast"
@@ -106,9 +106,41 @@ export default function PostItApp() {
     setViewport(newViewport)
   }, [])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts - only on desktop
   useEffect(() => {
+    // Skip keyboard shortcuts on mobile devices
+    const isMobile = window.innerWidth < 768
+    if (isMobile) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is currently typing in an input field
+      const activeElement = document.activeElement as HTMLElement
+      const isTyping = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.contentEditable === 'true' ||
+        activeElement.isContentEditable
+      )
+
+      // If user is typing, only allow Ctrl/Cmd shortcuts, not single key shortcuts
+      if (isTyping) {
+        // Only allow Ctrl/Cmd + N to create new note while typing
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+          e.preventDefault()
+          handleCreateNote()
+        }
+        // Only allow Ctrl/Cmd + Shift + Delete to clear all notes while typing
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Delete') {
+          e.preventDefault()
+          if (notes.length > 0) {
+            handleClearAllNotes()
+          }
+        }
+        // Don't process single-key shortcuts while typing
+        return
+      }
+
+      // Single-key shortcuts only work when NOT typing
       // Ctrl/Cmd + N to create new note
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault()
@@ -121,12 +153,12 @@ export default function PostItApp() {
           handleClearAllNotes()
         }
       }
-      // O to toggle overview
+      // O to toggle overview (only when not typing)
       if (e.key === 'o' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         setShowOverview(!showOverview)
       }
-      // F to fit all notes
+      // F to fit all notes (only when not typing)
       if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         if (notes.length > 0) {
@@ -197,11 +229,18 @@ export default function PostItApp() {
               pencil icon. Notes are shared with other users in real-time.
             </p>
             <div className="mt-2 text-xs text-muted-foreground">
-              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Drag</kbd> - Move notes</div>
-              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">O</kbd> - Toggle overview</div>
-              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">F</kbd> - Fit all notes</div>
-              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Scroll</kbd> - Zoom in/out</div>
-              <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Drag</kbd> - Pan canvas</div>
+              <div className="md:hidden">
+                <div>📱 <strong>Touch:</strong> Drag notes to move them</div>
+                <div>🔍 <strong>Pinch:</strong> Zoom in/out</div>
+                <div>📋 <strong>Tap overview:</strong> See all notes</div>
+              </div>
+              <div className="hidden md:block">
+                <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Drag</kbd> - Move notes</div>
+                <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">O</kbd> - Toggle overview</div>
+                <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">F</kbd> - Fit all notes</div>
+                <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Scroll</kbd> - Zoom in/out</div>
+                <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Drag</kbd> - Pan canvas</div>
+              </div>
             </div>
           </div>
         )}
@@ -229,6 +268,19 @@ export default function PostItApp() {
         ))}
       </ZoomableCanvas>
 
+      {/* Mobile Floating Action Button for Overview */}
+      {notes.length > 0 && (
+        <div className="md:hidden fixed bottom-4 right-4 z-40">
+          <Button
+            onClick={() => setShowOverview(!showOverview)}
+            className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+            title="Toggle notes overview"
+          >
+            <Grid3X3 className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
+
       {/* Navigation Components */}
       <NotesOverview
         notes={notes}
@@ -237,20 +289,26 @@ export default function PostItApp() {
         isVisible={showOverview}
       />
 
-      <ViewportNavigator
-        notes={notes}
-        onViewportChange={handleViewportChange}
-      />
+      {/* Hide viewport navigator on mobile - touch devices don't need zoom buttons */}
+      <div className="hidden md:block">
+        <ViewportNavigator
+          notes={notes}
+          onViewportChange={handleViewportChange}
+        />
+      </div>
 
-      <Minimap
-        notes={notes}
-        viewport={viewport}
-        onViewportChange={handleViewportChange}
-      />
+      {/* Hide minimap on mobile - takes up too much space */}
+      <div className="hidden md:block">
+        <Minimap
+          notes={notes}
+          viewport={viewport}
+          onViewportChange={handleViewportChange}
+        />
+      </div>
 
-      {/* Help Tips */}
+      {/* Help Tips - Only show on desktop */}
       {notes.length > 0 && (
-        <div className="fixed top-1/2 right-2 transform -translate-y-1/2 bg-card/95 backdrop-blur-sm rounded-lg border p-2 md:p-3 max-w-xs z-30">
+        <div className="hidden lg:block fixed top-1/2 right-2 transform -translate-y-1/2 bg-card/95 backdrop-blur-sm rounded-lg border p-2 md:p-3 max-w-xs z-30">
           <p className="text-xs text-muted-foreground">
             <strong>Navigation:</strong>
           </p>
@@ -262,6 +320,15 @@ export default function PostItApp() {
             <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+Drag</kbd> Pan</div>
             <div><kbd className="px-1 py-0.5 bg-muted rounded text-xs">±/0</kbd> Zoom/Reset</div>
           </div>
+        </div>
+      )}
+
+      {/* Mobile gesture hint */}
+      {notes.length > 0 && (
+        <div className="md:hidden fixed bottom-20 left-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg border p-3 text-center z-30">
+          <p className="text-xs text-muted-foreground">
+            💡 <strong>Tip:</strong> Pinch to zoom • Drag notes to move • Tap overview button to see all notes
+          </p>
         </div>
       )}
 
