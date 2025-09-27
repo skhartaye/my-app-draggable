@@ -6,19 +6,25 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "websocket": "node websocket-server.js",
+    "dev:full": "concurrently \"npm run websocket\" \"npm run dev\"",
+    "setup-db": "node setup-database.js",
+    "build:netlify": "npm run build",
+    "deploy:netlify": "cp app/page-netlify.tsx app/page.tsx && cp hooks/use-notes-netlify.ts hooks/use-realtime-notes.ts && npm run build"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^0.9.5",
     "@radix-ui/react-slot": "^1.2.3",
-    "@supabase/ssr": "^0.7.0",
-    "@supabase/supabase-js": "^2.57.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "concurrently": "^8.2.2",
     "lucide-react": "^0.542.0",
     "next": "15.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -26,6 +32,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
     "tailwindcss": "^4.1.12",

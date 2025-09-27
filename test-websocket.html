@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+        
+        function log(message) {
+            console.log(message);
+            messagesDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+        
+        try {
+            const ws = new WebSocket('ws://localhost:8080');
+            
+            ws.onopen = function() {
+                statusDiv.textContent = 'Connected!';
+                statusDiv.style.color = 'green';
+                log('WebSocket connected successfully');
+                
+                // Send a test message
+                ws.send(JSON.stringify({
+                    type: 'UPDATE',
+                    table: 'notes',
+                    data: { id: 'test', content: 'test message' }
+                }));
+            };
+            
+            ws.onmessage = function(event) {
+                log('Received: ' + event.data);
+            };
+            
+            ws.onclose = function(event) {
+                statusDiv.textContent = 'Disconnected';
+                statusDiv.style.color = 'red';
+                log('WebSocket closed. Code: ' + event.code + ', Reason: ' + event.reason);
+            };
+            
+            ws.onerror = function(error) {
+                statusDiv.textContent = 'Error';
+                statusDiv.style.color = 'red';
+                log('WebSocket error: ' + JSON.stringify(error));
+                console.error('Full error object:', error);
+            };
+            
+        } catch (error) {
+            statusDiv.textContent = 'Failed to create WebSocket';
+            statusDiv.style.color = 'red';
+            log('Failed to create WebSocket: ' + error.message);
+        }
+    </script>
+</body>
+</html>

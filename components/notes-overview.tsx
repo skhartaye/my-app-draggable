@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { EyeOff, Grid3X3, Search, MapPin } from "lucide-react"
+import { EyeOff, Grid3X3, Search, MapPin, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Note } from "@/hooks/use-realtime-notes"
 
@@ -28,6 +28,22 @@ export function NotesOverview({ notes, onNoteClick, onToggleOverview, isVisible 
   const filteredNotes = notes.filter(note => 
     note.content.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Unknown"
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return "Just now"
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
+  }
 
   if (!isVisible) {
     return (
@@ -97,9 +113,15 @@ export function NotesOverview({ notes, onNoteClick, onToggleOverview, isVisible 
                     <p className="text-xs font-medium truncate">
                       {note.content || "Empty note"}
                     </p>
-                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      <span>x:{Math.round(note.x)}, y:{Math.round(note.y)}</span>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        <span>x:{Math.round(note.x)}, y:{Math.round(note.y)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatDate(note.created_at)}</span>
+                      </div>
                     </div>
                   </div>
                   <div className={cn(

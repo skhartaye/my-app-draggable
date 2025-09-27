@@ -32,7 +32,10 @@ const PostItNote = memo(function PostItNote({ id, x, y, content, color, onPositi
   const [isDragging, setIsDragging] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(content)
-  const [currentPosition, setCurrentPosition] = useState({ x, y })
+  const [currentPosition, setCurrentPosition] = useState({ 
+    x: isNaN(x) ? 0 : x, 
+    y: isNaN(y) ? 0 : y 
+  })
   const noteRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -41,7 +44,9 @@ const PostItNote = memo(function PostItNote({ id, x, y, content, color, onPositi
 
   // Update local position when props change (from real-time updates)
   useEffect(() => {
-    setCurrentPosition({ x, y })
+    const safeX = isNaN(x) ? 0 : x
+    const safeY = isNaN(y) ? 0 : y
+    setCurrentPosition({ x: safeX, y: safeY })
   }, [x, y])
 
   useEffect(() => {
@@ -168,8 +173,8 @@ const PostItNote = memo(function PostItNote({ id, x, y, content, color, onPositi
         !isEditing && !isDragging && "hover:scale-105",
       )}
       style={{ 
-        left: currentPosition.x, 
-        top: currentPosition.y,
+        left: isNaN(currentPosition.x) ? 0 : currentPosition.x, 
+        top: isNaN(currentPosition.y) ? 0 : currentPosition.y,
         transform: isDragging ? 'rotate(3deg) scale(1.05)' : undefined,
         transition: isDragging ? 'none' : 'all 0.2s ease'
       }}

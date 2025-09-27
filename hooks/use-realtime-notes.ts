@@ -1,17 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { createClient } from "@/lib/supabase/client"
+import { notesApi, type Note } from "@/lib/api/notes"
 
-export interface Note {
-  id: string
-  content: string
-  x: number
-  y: number
-  color: string
-  created_at?: string
-  updated_at?: string
-}
+export type { Note }
+import { getRealtimeClient } from "@/lib/realtime/websocket"
 
 interface DbNote {
   id: string
@@ -28,43 +21,28 @@ export function useRealtimeNotes() {
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(false)
   const [userCount, setUserCount] = useState(1)
-  const supabase = createClient()
+  const realtimeClient = getRealtimeClient()
 
   const [debounceTimers, setDebounceTimers] = useState<Record<string, NodeJS.Timeout>>({})
   const [bulkOperationTimer, setBulkOperationTimer] = useState<NodeJS.Timeout | null>(null)
   const pendingChanges = useRef<Set<string>>(new Set())
 
-  const dbToClient = (dbNote: DbNote): Note => ({
-    id: dbNote.id,
-    content: dbNote.content,
-    x: dbNote.x_position,
-    y: dbNote.y_position,
-    color: dbNote.color,
-    created_at: dbNote.created_at,
-    updated_at: dbNote.updated_at,
-  })
 
-  const clientToDb = (note: Partial<Note>): Partial<DbNote> => {
-    const dbNote: Partial<DbNote> = {}
-    if (note.id !== undefined) dbNote.id = note.id
-    if (note.content !== undefined) dbNote.content = note.content
-    if (note.color !== undefined) dbNote.color = note.color
-    if (note.created_at !== undefined) dbNote.created_at = note.created_at
-    if (note.updated_at !== undefined) dbNote.updated_at = note.updated_at
-    if (note.x !== undefined) dbNote.x_position = note.x
-    if (note.y !== undefined) dbNote.y_position = note.y
-    return dbNote
-  }
 
+  // Load initial notes
   useEffect(() => {
     async function loadNotes() {
       try {
-        const { data, error } = await supabase.from("notes").select("*").order("created_at", { ascending: true })
+        console.log("Loading notes from Neon database...")
+        const { data, error } = await notesApi.getAll()
         if (error) throw error
-        setNotes((data as DbNote[]).map(dbToClient))
+        
+        setNotes(data)
         setConnected(true)
+        console.log(`Loaded ${data.length} notes from database`)
       } catch (error) {
         console.error("Error loading notes:", error)
+        setConnected(false)
       } finally {
         setLoading(false)
       }
@@ -72,82 +50,84 @@ export function useRealtimeNotes() {
     loadNotes()
   }, [])
 
+  // Set up real-time WebSocket subscriptions
   useEffect(() => {
-    const notesChannel = supabase
-      .channel("notes_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notes" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newNote = dbToClient(payload.new as DbNote)
-            setNotes((prev) => {
-              const exists = prev.some((note) => note.id === newNote.id)
-              return exists ? prev : [...prev, newNote]
-            })
-          } else if (payload.eventType === "UPDATE") {
-            const updatedNote = dbToClient(payload.new as DbNote)
-            if (!pendingChanges.current.has(updatedNote.id)) {
-              setNotes((prev) => prev.map((note) => (note.id === updatedNote.id ? updatedNote : note)))
-            }
-          } else if (payload.eventType === "DELETE") {
-            if (!pendingChanges.current.has(payload.old.id)) {
-              setNotes((prev) => prev.filter((note) => note.id !== payload.old.id))
-            }
+    console.log("Setting up real-time WebSocket subscriptions...")
+    
+    const subscriptionId = realtimeClient.subscribe("notes", (event) => {
+      console.log("Real-time event received:", event.type, event.data)
+      
+      if (event.type === "INSERT") {
+        const newNote = event.data as unknown as Note
+        console.log("Adding new note from other user:", newNote)
+        setNotes((prev) => {
+          const exists = prev.some((note) => note.id === newNote.id)
+          if (exists) {
+            console.log("Note already exists, skipping")
+            return prev
           }
-        },
-      )
-      .subscribe()
-
-    // User presence channel
-    const presenceChannel = supabase
-      .channel("user_presence")
-      .on("presence", { event: "sync" }, () => {
-        const state = presenceChannel.presenceState()
-        const users = Object.keys(state)
-        setUserCount(users.length)
-      })
-      .on("presence", { event: "join" }, () => {
-        const state = presenceChannel.presenceState()
-        const users = Object.keys(state)
-        setUserCount(users.length)
-      })
-      .on("presence", { event: "leave" }, () => {
-        const state = presenceChannel.presenceState()
-        const users = Object.keys(state)
-        setUserCount(users.length)
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await presenceChannel.track({
-            user_id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            online_at: new Date().toISOString(),
-          })
+          console.log("Adding note to state")
+          return [...prev, newNote]
+        })
+      } else if (event.type === "UPDATE") {
+        const updatedNote = event.data as unknown as Note
+        console.log("Updating note from other user:", updatedNote.id)
+        
+        // Always apply updates from other users, but skip our own pending changes
+        if (!pendingChanges.current.has(updatedNote.id)) {
+          setNotes((prev) => prev.map((note) => (note.id === updatedNote.id ? updatedNote : note)))
         }
-      })
+      } else if (event.type === "DELETE") {
+        const deletedId = (event.old?.id || event.data?.id) as string
+        console.log("Deleting note from other user:", deletedId)
+        if (!pendingChanges.current.has(deletedId)) {
+          setNotes((prev) => prev.filter((note) => note.id !== deletedId))
+        }
+      } else if (event.type === "CLEAR") {
+        console.log("Clearing all notes from other user")
+        setNotes([])
+      }
+    })
+
+    // Set up connection status monitoring
+    realtimeClient.onConnectionChange((isConnected) => {
+      setConnected(isConnected)
+      console.log("Real-time connection status:", isConnected)
+    })
 
     return () => {
-      supabase.removeChannel(notesChannel)
-      supabase.removeChannel(presenceChannel)
+      realtimeClient.unsubscribe(subscriptionId)
     }
   }, [])
 
   const createNote = useCallback(
     (noteData: Omit<Note, "id">) => {
       const tempId = `temp-${Date.now()}-${Math.random()}`
-      const tempNote: Note = { id: tempId, ...noteData }
+      const tempNote: Note = { id: tempId, ...noteData, created_at: new Date().toISOString() }
       setNotes((prev) => [...prev, tempNote])
       pendingChanges.current.add(tempId)
 
       if (debounceTimers[tempId]) clearTimeout(debounceTimers[tempId])
       const timer = setTimeout(async () => {
         try {
-          const dbData = clientToDb(noteData)
-          const { data, error } = await (supabase.from("notes") as any).insert([dbData]).select().single()
+          const { data, error } = await notesApi.create(noteData)
           if (error) throw error
-          const realNote = dbToClient(data as DbNote)
+          if (!data || !Array.isArray(data) || data.length === 0) {
+            throw new Error("No data returned from insert")
+          }
+          
+          const realNote = data[0]
           setNotes((prev) => prev.map((note) => (note.id === tempId ? realNote : note)))
           pendingChanges.current.delete(tempId)
+          
+          // Send real-time event to other users
+          realtimeClient.sendEvent({
+            type: "INSERT",
+            table: "notes",
+            data: realNote as unknown as Record<string, unknown>
+          })
+          
+          console.log("Note created successfully:", realNote.id)
         } catch (error) {
           console.error("Error creating note:", error)
           setNotes((prev) => prev.filter((note) => note.id !== tempId))
@@ -156,7 +136,7 @@ export function useRealtimeNotes() {
       }, 400)
       setDebounceTimers((prev) => ({ ...prev, [tempId]: timer }))
     },
-    [debounceTimers],
+    [debounceTimers, realtimeClient],
   )
 
   const updateNote = useCallback(
@@ -164,13 +144,26 @@ export function useRealtimeNotes() {
       if (debounceTimers[id]) clearTimeout(debounceTimers[id])
       pendingChanges.current.add(id)
       setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, ...updates } : note)))
+      
       if (id.startsWith("temp-")) return
+      
       const timer = setTimeout(async () => {
         try {
-          const dbUpdates = clientToDb(updates)
-          const { error } = await (supabase.from("notes") as any).update(dbUpdates).eq("id", id)
+          const { data, error } = await notesApi.update(id, updates)
           if (error) throw error
+          
           pendingChanges.current.delete(id)
+          
+          // Send real-time event to other users
+          if (data && Array.isArray(data) && data.length > 0) {
+            realtimeClient.sendEvent({
+              type: "UPDATE",
+              table: "notes",
+              data: data[0] as unknown as Record<string, unknown>
+            })
+          }
+          
+          console.log("Note updated successfully:", id)
         } catch (error) {
           console.error("Error updating note:", error)
           pendingChanges.current.delete(id)
@@ -178,7 +171,7 @@ export function useRealtimeNotes() {
       }, 300)
       setDebounceTimers((prev) => ({ ...prev, [id]: timer }))
     },
-    [debounceTimers],
+    [debounceTimers, realtimeClient],
   )
 
   const deleteNote = async (id: string) => {
@@ -192,31 +185,53 @@ export function useRealtimeNotes() {
         })
       }
       pendingChanges.current.delete(id)
-      const { error } = await supabase.from("notes").delete().eq("id", id)
+      
+      const { data, error } = await notesApi.delete(id)
       if (error) throw error
+      
+      // Send real-time event to other users
+      realtimeClient.sendEvent({
+        type: "DELETE",
+        table: "notes",
+        data: { id },
+        old: { id }
+      })
+      
+      console.log("Note deleted successfully:", id)
     } catch (error) {
       console.error("Error deleting note:", error)
       throw error
     }
   }
 
-  const clearAllNotes = useCallback(() => {
+  const clearAllNotes = useCallback(async () => {
     Object.values(debounceTimers).forEach((t) => clearTimeout(t))
     setDebounceTimers({})
     if (bulkOperationTimer) clearTimeout(bulkOperationTimer)
     setNotes([])
+    
     const timer = setTimeout(async () => {
       try {
-        const { error } = await supabase.from("notes").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+        const { error } = await notesApi.clearAll()
         if (error) throw error
+        
+        // Send real-time event to other users
+        realtimeClient.sendEvent({
+          type: "CLEAR",
+          table: "notes",
+          data: { cleared: true }
+        })
+        
+        console.log("All notes cleared successfully")
       } catch (error) {
         console.error("Error clearing notes:", error)
-        const { data } = await supabase.from("notes").select("*").order("created_at", { ascending: true })
-        if (data) setNotes((data as DbNote[]).map(dbToClient))
+        // Reload notes on error
+        const { data } = await notesApi.getAll()
+        if (data) setNotes(data)
       }
     }, 400)
     setBulkOperationTimer(timer)
-  }, [debounceTimers, bulkOperationTimer])
+  }, [debounceTimers, bulkOperationTimer, realtimeClient])
 
   return { notes, loading, connected, userCount, createNote, updateNote, deleteNote, clearAllNotes }
 }

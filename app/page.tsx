@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { PostItNote } from "@/components/postit-note"
 import { ColorPicker } from "@/components/color-picker"
@@ -12,6 +12,8 @@ import { NotesOverview } from "@/components/notes-overview"
 import { ViewportNavigator } from "@/components/viewport-navigator"
 import { Minimap } from "@/components/minimap"
 import { ZoomableCanvas } from "@/components/zoomable-canvas"
+import { UserCursors } from "@/components/user-cursors"
+import { useCursorTracking } from "@/hooks/use-cursor-tracking"
 
 export default function PostItApp() {
   const [selectedColor, setSelectedColor] = useState("yellow")
@@ -19,6 +21,10 @@ export default function PostItApp() {
   const [viewport, setViewport] = useState({ scale: 1, translateX: 0, translateY: 0 })
   const { notes, loading, connected, userCount, createNote, updateNote, deleteNote, clearAllNotes } = useRealtimeNotes()
   const toast = useToast()
+  
+  // Cursor tracking for collaborative features
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const { userId, userColor } = useCursorTracking(canvasRef)
 
   const handleCreateNote = useCallback(async () => {
     const isMobile = window.innerWidth < 768
@@ -249,6 +255,7 @@ export default function PostItApp() {
 
       {/* Zoomable Canvas */}
       <ZoomableCanvas
+        ref={canvasRef}
         transform={viewport}
         onTransformChange={handleViewportChange}
         className="canvas-grid"
@@ -268,6 +275,9 @@ export default function PostItApp() {
           />
         ))}
       </ZoomableCanvas>
+
+      {/* User Cursors for Collaboration */}
+      <UserCursors viewport={viewport} />
 
       {/* Mobile zoom indicator */}
       {viewport.scale !== 1 && (

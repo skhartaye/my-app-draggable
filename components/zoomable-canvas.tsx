@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, forwardRef } from "react"
 import { cn } from "@/lib/utils"
 
 interface ZoomableCanvasProps {
@@ -10,8 +10,10 @@ interface ZoomableCanvasProps {
   onTransformChange: (transform: { scale: number; translateX: number; translateY: number }) => void
 }
 
-export function ZoomableCanvas({ children, className, transform, onTransformChange }: ZoomableCanvasProps) {
+export const ZoomableCanvas = forwardRef<HTMLDivElement, ZoomableCanvasProps>(
+  ({ children, className, transform, onTransformChange }, ref) => {
   const canvasRef = useRef<HTMLDivElement>(null)
+  const combinedRef = ref || canvasRef
   const [isPanning, setIsPanning] = useState(false)
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 })
   
@@ -32,7 +34,7 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
     if (newScale === transform.scale) return
 
     // Zoom towards mouse position
-    const rect = canvasRef.current?.getBoundingClientRect()
+    const rect = (combinedRef as React.RefObject<HTMLDivElement>).current?.getBoundingClientRect()
     if (!rect) return
 
     const mouseX = e.clientX - rect.left
@@ -128,7 +130,7 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
         const newScale = Math.max(0.3, Math.min(3, transform.scale * scaleChange))
         
         // Calculate center point relative to canvas
-        const rect = canvasRef.current?.getBoundingClientRect()
+        const rect = (combinedRef as React.RefObject<HTMLDivElement>).current?.getBoundingClientRect()
         if (!rect) return
         
         const canvasCenterX = centerX - rect.left
@@ -218,7 +220,7 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
       e.preventDefault()
       setIsPanning(true)
       setLastPanPoint({ x: e.clientX, y: e.clientY })
-      canvasRef.current?.setPointerCapture(e.pointerId)
+      ;(combinedRef as React.RefObject<HTMLDivElement>).current?.setPointerCapture(e.pointerId)
     }
   }, [isGesturing])
 
@@ -244,7 +246,7 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (isPanning) {
       setIsPanning(false)
-      canvasRef.current?.releasePointerCapture(e.pointerId)
+      ;(combinedRef as React.RefObject<HTMLDivElement>).current?.releasePointerCapture(e.pointerId)
     }
   }, [isPanning])
 
@@ -306,7 +308,7 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
 
   // Add wheel event listener
   useEffect(() => {
-    const canvas = canvasRef.current
+    const canvas = (combinedRef as React.RefObject<HTMLDivElement>).current
     if (!canvas) return
 
     canvas.addEventListener('wheel', handleWheel, { passive: false })
@@ -315,7 +317,7 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
 
   return (
     <div
-      ref={canvasRef}
+      ref={combinedRef}
       className={cn(
         "absolute inset-0 overflow-hidden",
         isPanning && "cursor-grabbing",
@@ -343,4 +345,6 @@ export function ZoomableCanvas({ children, className, transform, onTransformChan
       </div>
     </div>
   )
-}
+})
+
+ZoomableCanvas.displayName = "ZoomableCanvas"
