@@ -154,21 +154,19 @@ export default function PostItApp() {
       />
 
       {/* Notes Overview */}
-      {showOverview && (
-        <NotesOverview
-          notes={notes}
-          onClose={() => setShowOverview(false)}
-          onNoteClick={(note) => {
-            setViewport({
-              scale: 1,
-              translateX: window.innerWidth / 2 - note.x - 96,
-              translateY: window.innerHeight / 2 - note.y - 96,
-            })
-            setShowOverview(false)
-          }}
-          onDeleteNote={handleDeleteNote}
-        />
-      )}
+      <NotesOverview
+        notes={notes}
+        onToggleOverview={() => setShowOverview(!showOverview)}
+        onNoteClick={(note) => {
+          setViewport({
+            scale: 1,
+            translateX: window.innerWidth / 2 - note.x - 96,
+            translateY: window.innerHeight / 2 - note.y - 96,
+          })
+          setShowOverview(false)
+        }}
+        isVisible={showOverview}
+      />
 
       {/* Minimap */}
       <Minimap
