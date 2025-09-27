@@ -138,7 +138,7 @@ export default function PostItApp() {
 
       {/* Floating Action Button */}
       <div className="absolute bottom-6 right-6 z-40 flex flex-col items-end gap-4">
-        <ColorPicker selectedColor={selectedColor} onColorChange={setSelectedColor} />
+        <ColorPicker selectedColor={selectedColor} onColorSelect={setSelectedColor} />
         
         <Button
           onClick={handleCreateNote}
