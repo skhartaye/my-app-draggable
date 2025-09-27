@@ -43,7 +43,7 @@ export default function PostItApp() {
       color: selectedColor,
     })
     
-    toast.show("Note created!", "success")
+    toast.success("Note created!")
   }, [selectedColor, viewport, createNote, toast])
 
   const handleUpdateNoteContent = useCallback(
@@ -63,7 +63,7 @@ export default function PostItApp() {
   const handleDeleteNote = useCallback(
     async (id: string) => {
       await deleteNote(id)
-      toast.show("Note deleted!", "success")
+      toast.success("Note deleted!")
     },
     [deleteNote, toast],
   )
@@ -74,7 +74,7 @@ export default function PostItApp() {
     const confirmed = window.confirm(`Are you sure you want to delete all ${notes.length} notes? This cannot be undone.`)
     if (confirmed) {
       await clearAllNotes()
-      toast.show("All notes cleared!", "success")
+      toast.success("All notes cleared!")
     }
   }, [notes.length, clearAllNotes, toast])
 
@@ -92,7 +92,7 @@ export default function PostItApp() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 relative">
-      <ToastContainer />
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
       
       {/* Header */}
       <div className="absolute top-4 left-4 right-4 z-40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pointer-events-none">
