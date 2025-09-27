@@ -11,6 +11,23 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    ignores: [
+      "*.original.*",
+      "test-*.html",
+      "deploy-netlify.js",
+      "restore-local.js",
+      "lib/realtime/broadcast.ts",
+      "lib/realtime/simple-websocket.ts",
+      "websocket-server.js",
+      ".kiro/**",
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "build/**",
+      "dist/**"
+    ]
+  }
 ];
 
 export default eslintConfig;

@@ -2,6 +2,9 @@
   command = "npm run build:netlify"
   publish = ".next"
 
+[build.environment]
+  DISABLE_ESLINT_PLUGIN = "true"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

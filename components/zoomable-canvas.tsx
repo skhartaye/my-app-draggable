@@ -53,7 +53,7 @@ export const ZoomableCanvas = forwardRef<HTMLDivElement, ZoomableCanvasProps>(
       translateX: newTranslateX,
       translateY: newTranslateY,
     })
-  }, [transform, onTransformChange])
+  }, [transform, onTransformChange, combinedRef])
 
   // Helper function to calculate distance between two touches
   const getTouchDistance = (touches: React.TouchList) => {
@@ -177,7 +177,7 @@ export const ZoomableCanvas = forwardRef<HTMLDivElement, ZoomableCanvasProps>(
       
       setLastTouchPanPoint({ x: touch.clientX, y: touch.clientY })
     }
-  }, [isGesturing, isTouchPanning, lastTouchDistance, lastTouchPanPoint, touchStartTime, transform, onTransformChange])
+  }, [isGesturing, isTouchPanning, lastTouchDistance, lastTouchPanPoint, touchStartTime, transform, onTransformChange, combinedRef])
 
   // Handle touch end
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
