@@ -151,9 +151,8 @@ export default function PostItApp() {
 
       {/* Viewport Navigator */}
       <ViewportNavigator
-        viewport={viewport}
+        notes={notes}
         onViewportChange={handleViewportChange}
-        onResetView={handleResetView}
       />
 
       {/* Notes Overview */}
