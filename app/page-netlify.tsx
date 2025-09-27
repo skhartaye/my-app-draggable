@@ -82,9 +82,7 @@ export default function PostItApp() {
     setViewport(newViewport)
   }, [])
 
-  const handleResetView = useCallback(() => {
-    setViewport({ scale: 1, translateX: 0, translateY: 0 })
-  }, [])
+
 
   if (loading) {
     return <NotesLoadingSkeleton />
