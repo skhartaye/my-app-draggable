@@ -36,7 +36,7 @@ export class SimpleWebSocketClient {
     }
   }
   
-  sendMessage(message: any) {
+  sendMessage(message: Record<string, unknown>) {
     if (this.ws && this.isConnected) {
       this.ws.send(JSON.stringify(message))
       console.log('📤 Sent:', message)
@@ -48,7 +48,7 @@ export class SimpleWebSocketClient {
 
 // Test the simple client
 if (typeof window !== 'undefined') {
-  (window as any).testWebSocket = () => {
+  (window as Record<string, unknown>).testWebSocket = () => {
     const client = new SimpleWebSocketClient()
     setTimeout(() => {
       client.sendMessage({ type: 'TEST', message: 'Hello from simple client!' })

@@ -2,8 +2,8 @@
 export interface RealtimeEvent {
   type: 'INSERT' | 'UPDATE' | 'DELETE'
   table: string
-  record?: any
-  old_record?: any
+  record?: Record<string, unknown>
+  old_record?: Record<string, unknown>
 }
 
 export async function broadcastEvent(event: RealtimeEvent) {

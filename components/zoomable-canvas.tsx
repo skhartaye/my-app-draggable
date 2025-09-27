@@ -222,7 +222,7 @@ export const ZoomableCanvas = forwardRef<HTMLDivElement, ZoomableCanvasProps>(
       setLastPanPoint({ x: e.clientX, y: e.clientY })
       ;(combinedRef as React.RefObject<HTMLDivElement>).current?.setPointerCapture(e.pointerId)
     }
-  }, [isGesturing])
+  }, [isGesturing, combinedRef])
 
   // Handle pan move
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -248,7 +248,7 @@ export const ZoomableCanvas = forwardRef<HTMLDivElement, ZoomableCanvasProps>(
       setIsPanning(false)
       ;(combinedRef as React.RefObject<HTMLDivElement>).current?.releasePointerCapture(e.pointerId)
     }
-  }, [isPanning])
+  }, [isPanning, combinedRef])
 
   // Keyboard shortcuts for zoom and pan
   useEffect(() => {
@@ -313,7 +313,7 @@ export const ZoomableCanvas = forwardRef<HTMLDivElement, ZoomableCanvasProps>(
 
     canvas.addEventListener('wheel', handleWheel, { passive: false })
     return () => canvas.removeEventListener('wheel', handleWheel)
-  }, [handleWheel])
+  }, [handleWheel, combinedRef])
 
   return (
     <div
