@@ -23,7 +23,7 @@ function generateUserId(): string {
 export function useCursorTracking(containerRef: React.RefObject<HTMLElement>) {
   const userIdRef = useRef<string>(generateUserId())
   const userColorRef = useRef<string>(getUserColor(userIdRef.current))
-  const throttleRef = useRef<NodeJS.Timeout>()
+  const throttleRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   useEffect(() => {
     const container = containerRef.current
