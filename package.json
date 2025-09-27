@@ -10,8 +10,9 @@
     "websocket": "node websocket-server.js",
     "dev:full": "concurrently \"npm run websocket\" \"npm run dev\"",
     "setup-db": "node setup-database.js",
-    "build:netlify": "npm run build",
-    "deploy:netlify": "cp app/page-netlify.tsx app/page.tsx && cp hooks/use-notes-netlify.ts hooks/use-realtime-notes.ts && npm run build"
+    "build:netlify": "node deploy-netlify.js && npm run build",
+    "deploy:netlify": "node deploy-netlify.js && npm run build",
+    "restore:local": "node restore-local.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.5",

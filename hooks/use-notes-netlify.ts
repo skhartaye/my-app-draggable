@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { notesApi, type Note } from "@/lib/api/notes"
 
+export type { Note }
+
 export function useNotesNetlify() {
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)

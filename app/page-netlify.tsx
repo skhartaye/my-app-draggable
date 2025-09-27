@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { PostItNote } from "@/components/postit-note"
 import { ColorPicker } from "@/components/color-picker"
 import { Plus, Trash2, Wifi, Grid3X3 } from "lucide-react"
-import { useNotesNetlify, type Note } from "@/hooks/use-notes-netlify"
+import { useNotesNetlify } from "@/hooks/use-notes-netlify"
 import { NotesLoadingSkeleton } from "@/components/loading-skeleton"
 import { ToastContainer, useToast } from "@/components/toast"
 import { NotesOverview } from "@/components/notes-overview"
