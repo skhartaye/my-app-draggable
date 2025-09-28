@@ -44,7 +44,8 @@ class RealtimeClient {
       }
       
       // Connect to WebSocket server
-      this.ws = new WebSocket('ws://localhost:8080')
+      const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8080'
+      this.ws = new WebSocket(wsUrl)
       
       // Set a connection timeout
       const connectionTimeout = setTimeout(() => {

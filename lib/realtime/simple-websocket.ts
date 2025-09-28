@@ -10,7 +10,8 @@ export class SimpleWebSocketClient {
   private connect() {
     try {
       console.log('🔌 Connecting to WebSocket...')
-      this.ws = new WebSocket('ws://localhost:8080')
+      const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'ws://localhost:8080'
+      this.ws = new WebSocket(wsUrl)
       
       this.ws.onopen = () => {
         console.log('✅ WebSocket connected!')
