@@ -24,7 +24,7 @@ export default function PostItApp() {
   
   // Cursor tracking for collaborative features
   const canvasRef = useRef<HTMLDivElement>(null)
-  const { userId, userColor } = useCursorTracking(canvasRef)
+  useCursorTracking(canvasRef) // Enable cursor tracking without using returned values
 
   const handleCreateNote = useCallback(async () => {
     const isMobile = window.innerWidth < 768
