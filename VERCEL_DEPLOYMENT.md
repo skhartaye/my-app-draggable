@@ -37,10 +37,17 @@ vercel env add DATABASE_URL
 
 ## 🔧 **Environment Variables**
 
-In Vercel dashboard, add:
-```
-DATABASE_URL = your_neon_database_connection_string
-```
+**IMPORTANT:** You must add the environment variable in Vercel dashboard:
+
+1. Go to your project settings in Vercel
+2. Click "Environment Variables" 
+3. Add:
+   - **Name:** `DATABASE_URL`
+   - **Value:** `your_neon_database_connection_string`
+   - **Environment:** Production, Preview, Development
+4. Click "Save"
+
+**Without
 
 ## ✅ **What Works on Vercel**
 

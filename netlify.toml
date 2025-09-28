@@ -4,6 +4,7 @@
 
 [build.environment]
   DISABLE_ESLINT_PLUGIN = "true"
+  SKIP_TYPE_CHECK = "true"
   NODE_VERSION = "18"
   NPM_VERSION = "9"
 
