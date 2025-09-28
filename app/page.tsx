@@ -12,8 +12,8 @@ import { NotesOverview } from "@/components/notes-overview"
 import { ViewportNavigator } from "@/components/viewport-navigator"
 import { Minimap } from "@/components/minimap"
 import { ZoomableCanvas } from "@/components/zoomable-canvas"
-import { UserCursors } from "@/components/user-cursors"
-import { useCursorTracking } from "@/hooks/use-cursor-tracking"
+import { CursorDisplay } from "@/components/cursor-display"
+import { useCursorTracking } from "@/hooks/use-cursor-tracking-sse"
 
 export default function PostItApp() {
   const [selectedColor, setSelectedColor] = useState("yellow")
@@ -24,7 +24,7 @@ export default function PostItApp() {
   
   // Cursor tracking for collaborative features
   const canvasRef = useRef<HTMLDivElement>(null)
-  useCursorTracking(canvasRef as React.RefObject<HTMLElement>) // Enable cursor tracking without using returned values
+  const otherCursors = useCursorTracking(canvasRef as React.RefObject<HTMLElement>)
 
   const handleCreateNote = useCallback(async () => {
     const isMobile = window.innerWidth < 768
@@ -277,7 +277,7 @@ export default function PostItApp() {
       </ZoomableCanvas>
 
       {/* User Cursors for Collaboration */}
-      <UserCursors viewport={viewport} />
+      <CursorDisplay cursors={otherCursors} viewport={viewport} />
 
       {/* Mobile zoom indicator */}
       {viewport.scale !== 1 && (
