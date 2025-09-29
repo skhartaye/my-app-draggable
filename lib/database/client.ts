@@ -10,8 +10,14 @@ export function createClient() {
 
   const databaseUrl = process.env.DATABASE_URL
 
+  console.log('🔍 Environment check:')
+  console.log('- NODE_ENV:', process.env.NODE_ENV)
+  console.log('- DATABASE_URL exists:', !!databaseUrl)
+  console.log('- DATABASE_URL length:', databaseUrl?.length || 0)
+
   if (!databaseUrl) {
-    console.error("DATABASE_URL is required but not found in environment variables")
+    console.error("❌ DATABASE_URL is required but not found in environment variables")
+    console.error("Available env vars:", Object.keys(process.env).filter(key => key.includes('DATABASE')))
     throw new Error("DATABASE_URL is required but not found in environment variables")
   }
 
